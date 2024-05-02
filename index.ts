@@ -1,4 +1,2 @@
-import LocalEchoController from "./lib/LocalEchoController";
+export { LocalEchoController } from "./lib/LocalEchoController";
 export { HistoryController } from "./lib/HistoryController";
-
-export default LocalEchoController;

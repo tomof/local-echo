@@ -28,7 +28,7 @@ type Options = {
   historySize?: number;
   maxAutocompleteEntries?: number;
 };
-export default class LocalEchoController implements ITerminalAddon {
+export class LocalEchoController implements ITerminalAddon {
   private term: Terminal;
   private _handleTermData: (data: string) => void;
   private _handleTermResize: (data: { cols: number; rows: number }) => void;
