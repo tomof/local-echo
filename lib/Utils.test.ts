@@ -1,16 +1,14 @@
-const {
-  wordBoundaries,
+import { ParseEntry } from "shell-quote";
+import { expect, test } from "vitest";
+import {
   closestLeftBoundary,
   closestRightBoundary,
-  offsetToColRow,
-  isIncompleteInput,
   collectAutocompleteCandidates,
-  getSharedFragment,
-} = require("./Utils");
+  isIncompleteInput,
+  offsetToColRow,
+  wordBoundaries,
+} from "./Utils";
 
-/**
- * Test word boundary detection
- */
 test("wordBoundaries()", () => {
   expect(wordBoundaries("foo bar baz", true)).toEqual([0, 4, 8]);
   expect(wordBoundaries("foo bar baz", false)).toEqual([3, 7, 11]);
@@ -42,36 +40,36 @@ test("offsetToColRow()", () => {
 
   expect(offsetToColRow("test single line case", 0, colSize)).toEqual({
     row: 0,
-    col: 0
+    col: 0,
   });
   expect(offsetToColRow("test single line case", 10, colSize)).toEqual({
     row: 0,
-    col: 10
+    col: 10,
   });
   expect(
     offsetToColRow("test single line case that wraps", 25, colSize)
   ).toEqual({
     row: 0,
-    col: 25
+    col: 25,
   });
   expect(
     offsetToColRow("test single line case that wraps", 26, colSize)
   ).toEqual({
     row: 1,
-    col: 0
+    col: 0,
   });
 
   expect(offsetToColRow("test\nmulti\nline case\n", 4, colSize)).toEqual({
     row: 0,
-    col: 4
+    col: 4,
   });
   expect(offsetToColRow("test\nmulti\nline case\n", 5, colSize)).toEqual({
     row: 1,
-    col: 0
+    col: 0,
   });
   expect(offsetToColRow("test\nmulti\nline case\n", 6, colSize)).toEqual({
     row: 1,
-    col: 1
+    col: 1,
   });
 
   expect(
@@ -82,7 +80,7 @@ test("offsetToColRow()", () => {
     )
   ).toEqual({
     row: 0,
-    col: 25
+    col: 25,
   });
   expect(
     offsetToColRow(
@@ -92,7 +90,7 @@ test("offsetToColRow()", () => {
     )
   ).toEqual({
     row: 1,
-    col: 0
+    col: 0,
   });
   expect(
     offsetToColRow(
@@ -102,7 +100,7 @@ test("offsetToColRow()", () => {
     )
   ).toEqual({
     row: 2,
-    col: 0
+    col: 0,
   });
 });
 
@@ -142,6 +140,8 @@ test("isIncompleteInput()", () => {
   expect(isIncompleteInput(`some '   `)).toEqual(true);
 });
 
+// TODO: hasTailingWhitespace
+
 /**
  * Tests if isIncompleteInput correctly detects various cases
  */
@@ -150,13 +150,17 @@ test("collectAutocompleteCandidates()", () => {
     return ["a", "ab", "abc"];
   };
 
-  const firstCb = index => {
+  const firstCb = (index: number) => {
     if (index === 1) return ["b", "bc", "bcd"];
     return [];
   };
 
-  const customCb = (index, tokens, custom) => {
-    return custom;
+  const customCb = (
+    index: number,
+    tokens: ParseEntry[],
+    ...args: unknown[]
+  ) => {
+    return args as string[];
   };
 
   const cbList = [
@@ -164,8 +168,8 @@ test("collectAutocompleteCandidates()", () => {
     { fn: firstCb, args: [] },
     {
       fn: customCb,
-      args: [["c", "cd", "cde"]]
-    }
+      args: ["c", "cd", "cde"],
+    },
   ];
 
   expect(collectAutocompleteCandidates(cbList, "")).toEqual([
@@ -174,17 +178,14 @@ test("collectAutocompleteCandidates()", () => {
     "abc",
     "c",
     "cd",
-    "cde"
+    "cde",
   ]);
   expect(collectAutocompleteCandidates(cbList, "a")).toEqual([
     "a",
     "ab",
-    "abc"
+    "abc",
   ]);
-  expect(collectAutocompleteCandidates(cbList, "ab")).toEqual([
-    "ab",
-    "abc"
-  ]);
+  expect(collectAutocompleteCandidates(cbList, "ab")).toEqual(["ab", "abc"]);
 
   expect(collectAutocompleteCandidates(cbList, "ab ")).toEqual([
     "a",
@@ -195,28 +196,11 @@ test("collectAutocompleteCandidates()", () => {
     "bcd",
     "c",
     "cd",
-    "cde"
+    "cde",
   ]);
   expect(collectAutocompleteCandidates(cbList, "ab b")).toEqual([
     "b",
     "bc",
-    "bcd"
+    "bcd",
   ]);
-
 });
-
-
-test('getSharedFragement', () => {
- 
-  expect(getSharedFragment('a', [ 'foo-1', 'foo-2' ])).toEqual(null);
-  expect(getSharedFragment('f', [ 'foo-1', 'foo-2', 'a' ])).toEqual(null);
-
-  expect(getSharedFragment('f', [ 'foo-1', 'foo-2' ])).toEqual('foo-');
-  expect(getSharedFragment('foo', [ 'foo-1', 'foo-2' ])).toEqual('foo-');
-
-  expect(getSharedFragment('f', [ 'foo-1', 'foo-2', 'fuu' ])).toEqual('f');
-  
-  expect(getSharedFragment('foo', [ 'foo-', 'foo-1' ])).toEqual('foo-');
-  expect(getSharedFragment('foo', [ 'foo-1', 'foo-' ])).toEqual('foo-');
-
-})
