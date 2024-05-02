@@ -2,7 +2,11 @@
  * The history controller provides an ring-buffer
  */
 export class HistoryController {
-  constructor(size) {
+  private size: number;
+  private entries: string[];
+  private cursor: number;
+
+  constructor(size: number) {
     this.size = size;
     this.entries = [];
     this.cursor = 0;
@@ -11,7 +15,7 @@ export class HistoryController {
   /**
    * Push an entry and maintain ring buffer size
    */
-  push(entry) {
+  push(entry: string) {
     // Skip empty entries
     if (entry.trim() === "") return;
     // Skip duplicate entries
@@ -20,7 +24,7 @@ export class HistoryController {
     // Keep track of entries
     this.entries.push(entry);
     if (this.entries.length > this.size) {
-      this.entries.pop(0);
+      this.entries.pop();
     }
     this.cursor = this.entries.length;
   }

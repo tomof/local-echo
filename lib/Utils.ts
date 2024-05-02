@@ -1,9 +1,15 @@
-import { parse } from "shell-quote";
+import { parse, ParseEntry } from "shell-quote";
+
+export type AutocompleteHandler = (
+  index: number,
+  tokens: ParseEntry[],
+  ...args: unknown[]
+) => string[];
 
 /**
  * Detects all the word boundaries on the given input
  */
-export function wordBoundaries(input, leftSide = true) {
+export function wordBoundaries(input: string, leftSide = true) {
   let match;
   const words = [];
   const rx = /\w+/g;
@@ -23,14 +29,14 @@ export function wordBoundaries(input, leftSide = true) {
  * The closest left (or right) word boundary of the given input at the
  * given offset.
  */
-export function closestLeftBoundary(input, offset) {
+export function closestLeftBoundary(input: string, offset: number) {
   const found = wordBoundaries(input, true)
     .reverse()
-    .find(x => x < offset);
+    .find((x) => x < offset);
   return found == null ? 0 : found;
 }
-export function closestRightBoundary(input, offset) {
-  const found = wordBoundaries(input, false).find(x => x > offset);
+export function closestRightBoundary(input: string, offset: number) {
+  const found = wordBoundaries(input, false).find((x) => x > offset);
   return found == null ? input.length : found;
 }
 
@@ -40,7 +46,7 @@ export function closestRightBoundary(input, offset) {
  * This function is not optimized and practically emulates via brute-force
  * the navigation on the terminal, wrapping when they reach the column width.
  */
-export function offsetToColRow(input, offset, maxCols) {
+export function offsetToColRow(input: string, offset: number, maxCols: number) {
   let row = 0,
     col = 0;
 
@@ -64,7 +70,7 @@ export function offsetToColRow(input, offset, maxCols) {
 /**
  * Counts the lines in the given input
  */
-export function countLines(input, maxCols) {
+export function countLines(input: string, maxCols: number) {
   return offsetToColRow(input, input.length, maxCols).row + 1;
 }
 
@@ -78,7 +84,7 @@ export function countLines(input, maxCols) {
  * - An input that has an incomplete boolean shell expression (&& and ||)
  * - An incomplete pipe expression (|)
  */
-export function isIncompleteInput(input) {
+export function isIncompleteInput(input: string) {
   // Empty input is not incomplete
   if (input.trim() == "") {
     return false;
@@ -93,12 +99,14 @@ export function isIncompleteInput(input) {
     return true;
   }
   // Check for dangling boolean or pipe operations
+  const inputSplitByPipe = input.split(/(\|\||\||&&)/g);
   if (
-    input
-      .split(/(\|\||\||&&)/g)
-      .pop()
-      .trim() == ""
+    inputSplitByPipe.length > 1 &&
+    inputSplitByPipe[inputSplitByPipe.length - 1].trim() == ""
   ) {
+    return true;
+  }
+  if (input.endsWith("\\") && !input.endsWith("\\\\")) {
     return true;
   }
   // Check for tailing slash
@@ -112,27 +120,34 @@ export function isIncompleteInput(input) {
 /**
  * Returns true if the expression ends on a tailing whitespace
  */
-export function hasTailingWhitespace(input) {
+export function hasTailingWhitespace(input: string) {
   return input.match(/[^\\][ \t]$/m) != null;
 }
 
 /**
  * Returns the last expression in the given input
  */
-export function getLastToken(input) {
+export function getLastToken(input: string): string {
   // Empty expressions
   if (input.trim() === "") return "";
   if (hasTailingWhitespace(input)) return "";
 
   // Last token
   const tokens = parse(input);
-  return tokens.pop() || "";
+  const lastToken = tokens.pop() || "";
+  if (typeof lastToken === "string") {
+    return lastToken;
+  }
+  return "";
 }
 
 /**
  * Returns the auto-complete candidates for the given input
  */
-export function collectAutocompleteCandidates(callbacks, input) {
+export function collectAutocompleteCandidates(
+  callbacks: { fn: AutocompleteHandler; args: unknown[] }[],
+  input: string
+) {
   const tokens = parse(input);
   let index = tokens.length - 1;
   let expr = tokens[index] || "";
@@ -148,7 +163,7 @@ export function collectAutocompleteCandidates(callbacks, input) {
   }
 
   // Collect all auto-complete candidates from the callbacks
-  const all = callbacks.reduce((candidates, { fn, args }) => {
+  const all = callbacks.reduce((candidates: string[], { fn, args }) => {
     try {
       return candidates.concat(fn(index, tokens, ...args));
     } catch (e) {
@@ -158,23 +173,23 @@ export function collectAutocompleteCandidates(callbacks, input) {
   }, []);
 
   // Filter only the ones starting with the expression
-  return all.filter(txt => txt.startsWith(expr));
+  if (typeof expr === "string") {
+    return all.filter((txt: string) => txt.startsWith(expr));
+  }
+  return all.filter((txt) => txt.startsWith(""));
 }
 
-
-export function getSharedFragment(fragment, candidates) {
-
+export function getSharedFragment(fragment: string, candidates: string[]) {
   // end loop when fragment length = first candidate length
   if (fragment.length >= candidates[0].length) return fragment;
-  
-  // save old fragemnt
+
+  // save old fragment
   const oldFragment = fragment;
-  
+
   // get new fragment
-  fragment += candidates[0].slice(fragment.length, fragment.length+1);
+  fragment += candidates[0].slice(fragment.length, fragment.length + 1);
 
-  for (let i=0; i<candidates.length; i++ ) {
-
+  for (let i = 0; i < candidates.length; i++) {
     // return null when there's a wrong candidate
     if (!candidates[i].startsWith(oldFragment)) return null;
 
