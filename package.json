@@ -25,7 +25,7 @@
   },
   "homepage": "https://github.com/wavesoft/local-echo#readme",
   "devDependencies": {
-    "jest": "^23.6.0"
+    "jest": "^29.7.0"
   },
   "jest": {
     "transform": {
