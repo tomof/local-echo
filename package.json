@@ -33,6 +33,6 @@
     }
   },
   "dependencies": {
-    "shell-quote": "^1.6.1"
+    "shell-quote": "^1.8.1"
   }
 }
